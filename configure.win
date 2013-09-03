@@ -1,0 +1,119 @@
+#
+#
+# select library path from an environment variable
+#
+if [ -n "${OCI_LIB64}" -a $R_ARCH = '/x64' ] ; then
+  ROCI_LIB=${OCI_LIB64}
+else
+  if [ -n "${OCI_LIB32}" -a $R_ARCH = '/i386' ] ; then
+    ROCI_LIB=${OCI_LIB32}
+  else
+    echo "ERROR: cannot find Oracle Client." >&2
+    if [ $R_ARCH = '/x64' ] ; then
+      echo "       Please set OCI_LIB64 to specify its location." >&2
+    else
+      echo "       Please set OCI_LIB32 to specify its location." >&2
+    fi
+    exit 1
+  fi
+fi
+if [ ! -d "${ROCI_LIB}" ] ; then
+  echo "ERROR: " ${ROCI_LIB} " directory does not exist." >&2
+  exit 1
+fi
+
+#
+# check Oracle Client oci.dll in ROCI_LIB
+#
+if test ! -f $ROCI_LIB/oci.dll ; then
+  echo "ERROR: cannot find Oracle Client library in "${ROCI_LIB}"." >&2
+  if [ $R_ARCH = '/x64' ] ; then
+    echo "       Please set OCI_LIB64 to correct location." >&2
+  else
+    echo "       Please set OCI_LIB32 to correct location." >&2
+  fi
+  exit 1
+fi
+
+#
+# check Oracle Client shared library details if genezi utility is available
+#
+if test -f $ROCI_LIB/genezi ; then
+  # Get the Client Shared Library details
+  ROCI_LIB_INFO=`${ROCI_LIB}/genezi -v | grep Shared`
+
+  # get the Client Shared Libraray operating mode
+  ROCI_LIB_OPER=`${ROCI_LIB}/genezi -v | grep Operating`
+
+  # 64-bit version of Oracle Client library cannot be used when building with
+  # 32-bit R with --merge-multiarch, R reports following error:
+  #  Error in inDL(x, as.logical(local), as.logical(now), ...) :
+  #    unable to load shared object '.../library/ROracle/libs/x64/ROracle.dll':
+  #    LoadLibrary failure:  %1 is not a valid Win32 application.
+  #
+  ROCI_LIB_ARCH=`echo $ROCI_LIB_INFO | gawk '{print $4}'`
+  if [ $R_ARCH = '/i386' -a $ROCI_LIB_ARCH = '64-bit' ] ; then
+    echo $ROCI_LIB_INFO "cannot be used to install with 32-bit R." >&2
+    exit 1
+  fi
+
+  # 32-bit version of Oracle Client library cannot be used when building with
+  # 64-bit R with --merge-multiarch, R reports following error:
+  #  " collect2: ld returned 5 exit status"
+  if [ $R_ARCH = '/x64' -a $ROCI_LIB_ARCH = '32-bit' ] ; then
+    echo $ROCI_LIB_INFO "cannot be used to install with 64-bit R." >&2
+    exit 1
+  fi
+
+  # display details and operating mode of Oracle Client Library
+  echo "Oracle" $ROCI_LIB_INFO $ROCI_LIB_OPER >&2
+fi
+
+#
+# select include path from an environment variable
+# or from a standard location in case of Instant Client.
+#
+if [ -n "${OCI_INC}" ] ; then
+  ROCI_INC=${OCI_INC}
+  echo "found Oracle Client" ${ROCI_LIB}
+  echo "found Oracle Client include" ${ROCI_INC} 
+else
+  if [ -d "${ROCI_LIB}/sdk/include" ] ; then
+    ROCI_INC="${ROCI_LIB}/sdk/include"
+    echo "found Instant Client" ${ROCI_LIB} 
+    echo "found Instant Client SDK" ${ROCI_INC} 
+  else
+    echo "ERROR: cannot find "${ROCI_LIB}"/sdk/include or Oracle Client include." >&2
+    echo "       Please set OCI_INC to specify its location." >&2
+    exit 1
+  fi
+fi
+
+#
+# check Oracle Client headers are in ROCI_INC
+#
+if test ! -f $ROCI_INC/oci.h ; then
+  echo "ERROR: cannot find Oracle Client include headers in "${ROCI_INC}"." >&2
+  echo "       Please set OCI_INC to correct location." >&2
+  exit 1
+fi
+
+#
+# patch 64bit include headers
+#
+echo "copying from" ${ROCI_INC}
+cp ${ROCI_INC}/nzerror.h ./src/oci
+cp ${ROCI_INC}/nzt.h ./src/oci
+cp ${ROCI_INC}/oci.h ./src/oci
+cp ${ROCI_INC}/oci1.h ./src/oci
+cp ${ROCI_INC}/oci8dp.h ./src/oci
+cp ${ROCI_INC}/ociap.h ./src/oci
+cp ${ROCI_INC}/ociapr.h ./src/oci
+cp ${ROCI_INC}/ocidfn.h ./src/oci
+cp ${ROCI_INC}/ociextp.h ./src/oci
+cp ${ROCI_INC}/ocixmldb.h ./src/oci
+cp ${ROCI_INC}/ocixstream.h ./src/oci
+cp ${ROCI_INC}/ori.h ./src/oci
+cp ${ROCI_INC}/orl.h ./src/oci
+cp ${ROCI_INC}/oro.h ./src/oci
+cp ${ROCI_INC}/ort.h ./src/oci
