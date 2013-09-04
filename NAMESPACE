@@ -1,4 +1,4 @@
-useDynLib(ROracle)
+useDynLib(ROracle2)
 
 import(methods)
 import(DBI)

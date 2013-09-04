@@ -46,19 +46,19 @@
 .oci.Driver <- function(drv, interruptible = FALSE, extproc.ctx = NULL)
 {
   .Call("rociDrvInit", drv@handle, interruptible, extproc.ctx,
-        PACKAGE = "ROracle")
+        PACKAGE = "ROracle2")
   drv
 }
 
 .oci.UnloadDriver <- function(drv)
 {
-  .Call("rociDrvTerm", drv@handle, PACKAGE = "ROracle")
+  .Call("rociDrvTerm", drv@handle, PACKAGE = "ROracle2")
   TRUE
 }
 
 .oci.DriverInfo <- function(drv, what)
 {
-  info <- .Call("rociDrvInfo", drv@handle, PACKAGE = "ROracle")
+  info <- .Call("rociDrvInfo", drv@handle, PACKAGE = "ROracle2")
   info$connections <- lapply(info$connections,
                              function(hdl) new("OraConnection", handle = hdl))
   if (!missing(what))
@@ -115,15 +115,15 @@
   # connect
   params <- c(username, password, dbname)
   hdl <- .Call("rociConInit", drv@handle, params, prefetch, bulk_read,
-               stmt_cache, PACKAGE = "ROracle")
+               stmt_cache, PACKAGE = "ROracle2")
   timesten <- (.Call("rociConInfo", hdl, 
-                      PACKAGE = "ROracle")$serverType == "TimesTen IMDB")
+                      PACKAGE = "ROracle2")$serverType == "TimesTen IMDB")
   new("OraConnection", handle = hdl, timesten = timesten)
 }
 
 .oci.Disconnect <- function(con)
 {
-  .Call("rociConTerm", con@handle, PACKAGE = "ROracle")
+  .Call("rociConTerm", con@handle, PACKAGE = "ROracle2")
   TRUE
 }
 
@@ -141,15 +141,19 @@
   if (bulk_read < 1L)
     stop(gettextf("argument '%s' must be greater than 0", "bulk_read")) 
 
-  stmt <- as.character(stmt)
-  if (length(stmt) != 1L)
-    stop("'statement' must be a single string")
-
   if (!is.null(data))
     data <- .oci.data.frame(data)
 
-  hdl <- .Call("rociResInit", con@handle, stmt, data, prefetch,
-               bulk_read, PACKAGE = "ROracle")
+  stmt <- as.character(stmt)
+  # Execute all statements not fetching any data, except the last stmt
+  lapply(head(stmt, -1), function(s) {
+    hdl <- .Call("rociResInit", con@handle, s, data, FALSE,
+                 bulk_read, PACKAGE = "ROracle2")
+    .Call("rociResTerm", hdl, PACKAGE = "ROracle2")
+  })
+  # Execute the last query and return its result
+  hdl <- .Call("rociResInit", con@handle, tail(stmt, 1), data, prefetch,
+               bulk_read, PACKAGE = "ROracle2")
   new("OraResult", handle = hdl)
 }
 
@@ -175,16 +179,16 @@
     data <- .oci.data.frame(data)
 
   hdl <- .Call("rociResInit", con@handle, stmt, data,
-               prefetch, bulk_read, PACKAGE = "ROracle")
+               prefetch, bulk_read, PACKAGE = "ROracle2")
   res <- try(
   {
-    info <- .Call("rociResInfo", hdl, PACKAGE = "ROracle")
+    info <- .Call("rociResInfo", hdl, PACKAGE = "ROracle2")
     if (info["completed"][[1L]])
       TRUE
     else
-      .Call("rociResFetch", hdl, -1L, PACKAGE = "ROracle")
+      .Call("rociResFetch", hdl, -1L, PACKAGE = "ROracle2")
   }, silent = TRUE)
-  .Call("rociResTerm", hdl, PACKAGE = "ROracle")
+  .Call("rociResTerm", hdl, PACKAGE = "ROracle2")
   if (inherits(res, "try-error"))
     stop(res)
   res
@@ -192,12 +196,12 @@
 
 .oci.GetException <- function(con)
 {
-  .Call("rociConError", con@handle, PACKAGE = "ROracle")
+  .Call("rociConError", con@handle, PACKAGE = "ROracle2")
 }
 
 .oci.ConnectionInfo <- function(con, what)
 {
-  info <- .Call("rociConInfo", con@handle, PACKAGE = "ROracle")
+  info <- .Call("rociConInfo", con@handle, PACKAGE = "ROracle2")
   info$results <- lapply(info$results,
                          function(hdl) new("OraResult", handle = hdl))
   if (!missing(what))
@@ -518,7 +522,7 @@
   if (info$serverType == "Oracle Extproc")
     .oci.GetQuery(con, "commit")
   else  
-    .Call("rociConCommit", con@handle, PACKAGE = "ROracle")
+    .Call("rociConCommit", con@handle, PACKAGE = "ROracle2")
   TRUE
 }
 
@@ -528,7 +532,7 @@
   if (info$serverType == "Oracle Extproc")
     .oci.GetQuery(con, "rollback")
   else  
-    .Call("rociConRollback", con@handle, PACKAGE = "ROracle")  
+    .Call("rociConRollback", con@handle, PACKAGE = "ROracle2")  
   TRUE
 }
 
@@ -538,22 +542,22 @@
 
 .oci.fetch <- function(res, n = -1L)
 {
-  inf <- .Call("rociResInfo", res@handle, PACKAGE = "ROracle")
+  inf <- .Call("rociResInfo", res@handle, PACKAGE = "ROracle2")
   if (inf$completed)
     stop("no more data to fetch")
 
-  .Call("rociResFetch", res@handle, n, PACKAGE = "ROracle")
+  .Call("rociResFetch", res@handle, n, PACKAGE = "ROracle2")
 }
 
 .oci.ClearResult <- function(res)
 {
-  .Call("rociResTerm", res@handle, PACKAGE = "ROracle")
+  .Call("rociResTerm", res@handle, PACKAGE = "ROracle2")
   TRUE
 }
 
 .oci.ResultInfo <- function(res, what)
 {
-  info <- .Call("rociResInfo", res@handle, PACKAGE = "ROracle")
+  info <- .Call("rociResInfo", res@handle, PACKAGE = "ROracle2")
   if (!missing(what))
     info <- info[what]
   info
@@ -581,7 +585,7 @@
   if (!is.null(data))
     data <- .oci.data.frame(data)
 
-  .Call("rociResExec", res@handle, data, PACKAGE = "ROracle")
+  .Call("rociResExec", res@handle, data, PACKAGE = "ROracle2")
 }
 
 ## ------------------------------------------------------------------------- ##

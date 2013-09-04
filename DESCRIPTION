@@ -1,5 +1,5 @@
-Package: ROracle
-Version: 1.1-10
+Package: ROracle2
+Version: 1.2
 Date: 2013-04-30
 Author: Denis Mukhin, David A. James and Jake Luciani
 Maintainer: Denis Mukhin <denis.x.mukhin@oracle.com>

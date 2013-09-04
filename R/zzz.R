@@ -23,12 +23,12 @@
   assign(".oci.GlobalEnv", new.env(parent = emptyenv()), envir = topenv())
 
   # create driver singleton
-  hdl <- .Call("rociDrvAlloc", PACKAGE = "ROracle")
+  hdl <- .Call("rociDrvAlloc", PACKAGE = "ROracle2")
   drv <- new("OraDriver", handle = hdl)
   assign("ora.driver", drv, envir = .oci.GlobalEnv)
 
   # create extproc driver singleton
-  hdl <- .Call("rociDrvAlloc", PACKAGE = "ROracle")
+  hdl <- .Call("rociDrvAlloc", PACKAGE = "ROracle2")
   drv <- new("ExtDriver", handle = hdl)
   assign("ext.driver", drv, envir = .oci.GlobalEnv)
 }
