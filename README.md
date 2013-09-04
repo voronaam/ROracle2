@@ -9,3 +9,5 @@ The project has been forked from version 1.1-10
 
 Original authors: Denis Mukhin, David A. James and Jake Luciani
 
+Extra features added so far:
+- Multiple query support in dbSendQuery
