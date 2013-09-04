@@ -379,7 +379,7 @@
   # insert data
   res <- try(
   {
-    stmt <- sprintf('insert into "%s" values (%s)', name,
+    stmt <- sprintf('insert into %s values (%s)', name,
                     paste(":", seq_along(cnames), sep = "", collapse = ","))
     .oci.GetQuery(con, stmt, data = value)
   }, silent = TRUE)
