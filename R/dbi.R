@@ -208,9 +208,9 @@ function(conn, name, schema = NULL, row.names = NULL, ...)
 
 setMethod("dbWriteTable",
 signature(conn = "OraConnection", name = "character", value = "data.frame"),
-function(conn, name, value, row.names = FALSE, overwrite = FALSE,
-         append = FALSE, ora.number = TRUE, ...)
-.oci.WriteTable(conn, name, value, row.names = row.names,
+function(conn, name, value, schema = NULL, row.names = FALSE,
+         overwrite = FALSE, append = FALSE, ora.number = TRUE, ...)
+.oci.WriteTable(conn, name, value, schema = schema, row.names = row.names,
                 overwrite = overwrite, append = append,
                 ora.number = ora.number)
 )
@@ -223,8 +223,8 @@ function(conn, name, schema = NULL, ...)
 
 setMethod("dbRemoveTable",
 signature(conn = "OraConnection", name = "character"),
-function(conn, name, purge = FALSE, ...)
-.oci.RemoveTable(conn, name, purge = purge)
+function(conn, name, schema = NULL, purge = FALSE, ...)
+.oci.RemoveTable(conn, name, schema = schema, purge = purge)
 )
 
 setMethod("dbListFields",

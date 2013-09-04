@@ -328,9 +328,9 @@
   res
 }
 
-.oci.WriteTable <- function(con, name, value, row.names = FALSE,
-                            overwrite = FALSE, append = FALSE,
-                            ora.number = TRUE)
+.oci.WriteTable <- function(con, name, value, schema = NULL,
+                            row.names = FALSE, overwrite = FALSE,
+                            append = FALSE, ora.number = TRUE)
 {
   # commit
   .oci.Commit(con)
@@ -343,6 +343,20 @@
   name <- as.character(name)
   if (length(name) != 1L)
     stop("'name' must be a single string")
+    
+  # validate schema
+  if (!is.null(schema))
+  {
+    schema <- as.character(schema)
+    if (length(schema) != 1L)
+      stop("'schema' must be a single string")
+  }
+  
+  # form name
+  if (is.null(schema))
+    tab <- sprintf('"%s"', name)
+  else
+    tab <- sprintf('"%s"."%s"', schema, name)
 
   # add row.names column
   if (row.names && !is.null(row.names(value)))
@@ -358,15 +372,15 @@
   ctypes <- sapply(head(value,0), .oci.dbType, ora.number = ora.number, 
                    timesten = con@timesten)
   cnames <- sprintf('"%s"', names(value))
-
+  
   # create table
   drop <- TRUE
-  if (.oci.ExistsTable(con, name))
+  if (.oci.ExistsTable(con, name, schema = schema))
   {
     if (overwrite)
     {
-      .oci.RemoveTable(con, name)
-      .oci.CreateTable(con, name, cnames, ctypes)
+      .oci.RemoveTable(con, name, schema = schema)
+      .oci.CreateTable(con, tab, cnames, ctypes)
     }
     else if (append)
       drop <- FALSE
@@ -374,12 +388,12 @@
       stop("table or view already exists")
   }
   else
-    .oci.CreateTable(con, name, cnames, ctypes)
+    .oci.CreateTable(con, tab, cnames, ctypes)
 
   # insert data
   res <- try(
   {
-    stmt <- sprintf('insert into %s values (%s)', name,
+    stmt <- sprintf('insert into %s values (%s)', tab,
                     paste(":", seq_along(cnames), sep = "", collapse = ","))
     .oci.GetQuery(con, stmt, data = value)
   }, silent = TRUE)
@@ -412,7 +426,7 @@
   # check for existence
   if (!is.null(schema))
   {
-# Bug 13843805 : Changed table name from all_tables to all_objects
+    # Bug 13843805 : Changed table name from all_tables to all_objects
     qry <- "select 1 from all_objects \
                   where (object_name = :1 and owner = :2) \
                   and (object_type = 'TABLE' or object_type = 'VIEW')"
@@ -421,7 +435,7 @@
   }
   else
   {
-# Bug 13843805 : Changed table name from user_tables to user_objects
+    # Bug 13843805 : Changed table name from user_tables to user_objects
     qry <- "select 1 from user_objects where object_name = :1 \
                    and (object_type = 'TABLE' or object_type = 'VIEW')"
     res <- .oci.GetQuery(con, qry,
@@ -430,12 +444,27 @@
   nrow(res) == 1L
 }
 
-.oci.RemoveTable <- function(con, name, purge = FALSE)
+.oci.RemoveTable <- function(con, name, schema = NULL, purge = FALSE)
 {
   # validate name
   name <- as.character(name)
   if (length(name) != 1L)
     stop("'name' must be a single string")
+    
+  # validate schema
+  if (!is.null(schema))
+  {
+    schema <- as.character(schema)
+    if (length(schema) != 1L)
+      stop("'schema' must be a single string")
+  }
+  
+  # form name
+  if (is.null(schema))
+    tab <- sprintf('"%s"', name)
+  else
+    tab <- sprintf('"%s"."%s"', schema, name)
+
 
   # remove
   parm <- if (purge) "purge" else ""
@@ -447,9 +476,9 @@
   res <- .oci.GetQuery(con, qry,  data = data.frame(name = name))
 
   if (nrow(res) == 1L)
-      stmt <- sprintf('drop view "%s"', name)
+      stmt <- sprintf('drop view %s', tab)
   else
-      stmt <- sprintf('drop table "%s" %s', name, parm)
+      stmt <- sprintf('drop table %s %s', tab, parm)
 
   .oci.GetQuery(con, stmt)
   TRUE
@@ -678,7 +707,7 @@
 
 .oci.CreateTable <- function(con, name, cnames, ctypes)
 {
-  stmt <- sprintf('create table "%s" (%s)', name,
+  stmt <- sprintf('create table %s (%s)', name,
                   paste(cnames, ctypes, collapse = ","))
   .oci.GetQuery(con, stmt)
 }

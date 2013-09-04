@@ -12,3 +12,6 @@ Original authors: Denis Mukhin, David A. James and Jake Luciani
 Extra features added so far:
 - Multiple query support in dbSendQuery
 - Multiple query support in dbGetQuery
+- dbWriteTable and dbRemoveTable now have parameter schema to handle
+  schemes properly
+
