@@ -11,3 +11,4 @@ Original authors: Denis Mukhin, David A. James and Jake Luciani
 
 Extra features added so far:
 - Multiple query support in dbSendQuery
+- Multiple query support in dbGetQuery

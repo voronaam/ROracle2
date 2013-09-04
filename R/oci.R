@@ -172,13 +172,19 @@
     stop(gettextf("argument '%s' must be greater than 0", "bulk_read")) 
 
   stmt <- as.character(stmt)
-  if (length(stmt) != 1L)
-    stop("'statement' must be a single string")
 
   if (!is.null(data))
     data <- .oci.data.frame(data)
 
-  hdl <- .Call("rociResInit", con@handle, stmt, data,
+  # Execute all statements not fetching any data, except the last stmt
+  lapply(head(stmt, -1), function(s) {
+    hdl <- .Call("rociResInit", con@handle, s, data, FALSE,
+                 bulk_read, PACKAGE = "ROracle2")
+    .Call("rociResTerm", hdl, PACKAGE = "ROracle2")
+  })
+
+
+  hdl <- .Call("rociResInit", con@handle, tail(stmt, 1), data,
                prefetch, bulk_read, PACKAGE = "ROracle2")
   res <- try(
   {
