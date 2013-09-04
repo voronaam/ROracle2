@@ -14,4 +14,5 @@ Extra features added so far:
 - Multiple query support in dbGetQuery
 - dbWriteTable and dbRemoveTable now have parameter schema to handle
   schemes properly
-
+- dbWriteTable to use names in the Insert statement (allows user to omit
+  auto-generated fields)
